@@ -1,0 +1,25 @@
+# Output files
+*.xlsx
+debug_*.png
+debug_*.html
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Transcripts (private)
+transcripts.txt
