@@ -65,72 +65,44 @@ python3 scraper.py "https://www.google.com/maps/place/..." --debug
 
 **Use the full Google Maps URL, not shortened links.**
 
-1. Go to Google Maps in your browser
-2. Search for the business
-3. Click on the **Reviews** section/tab
-4. Copy the full URL from your address bar
+1. Open the business in Google Maps
+2. Click the **Reviews** tab
+3. Copy the full URL (should contain `!9m1!1b1`)
 
-The URL should contain the reviews parameter (`!9m1!1b1`) for best results:
-```
-https://www.google.com/maps/place/Business+Name/@lat,lng,17z/data=!4m8!3m7!1s...!9m1!1b1!16s...
-```
+Shortened `maps.app.goo.gl/...` links won't work reliably.
 
-Shortened URLs like `maps.app.goo.gl/...` may not work reliably.
+---
 
-## Lessons Learned
+## Key Insights
 
-### Why Non-Headless Mode is Recommended
+### Don't use headless mode
 
-During development, we discovered that **headless mode often fails** due to Google's bot detection:
+Google detects headless browsers and serves stripped-down pages without reviews. **Run without `--headless`** — the browser opens, scrolls, and closes automatically.
 
-1. **Bot Detection**: Google Maps actively detects automated browsers. Headless browsers have different fingerprints that trigger detection, resulting in stripped-down pages without reviews.
+### Why Playwright over Selenium?
 
-2. **Dynamic Content**: Google Maps loads reviews dynamically via JavaScript. Headless mode sometimes doesn't wait long enough or execute scripts properly.
+| Playwright | Selenium |
+|------------|----------|
+| Auto-waits for elements | Manual waits needed |
+| Better bot detection evasion | Easily fingerprinted |
+| Built for modern SPAs | Built for older web apps |
 
-3. **Session Issues**: Subsequent headless runs after an initial successful run often fail, suggesting Google flags the browser session.
-
-**Recommendation**: Run without `--headless` for reliable results. The browser window will open, scroll through reviews, and close automatically.
-
-### Why Playwright?
-
-We chose [Playwright](https://playwright.dev/) over alternatives like Selenium or Puppeteer for several reasons:
-
-1. **Modern Architecture**: Built for modern web apps with better handling of dynamic content and SPAs like Google Maps.
-
-2. **Auto-Wait**: Playwright automatically waits for elements to be ready, reducing flaky scripts and timing issues.
-
-3. **Better Stealth**: More options for avoiding bot detection (custom user agents, viewport settings, JavaScript injection).
-
-4. **Cross-Browser**: Supports Chromium, Firefox, and WebKit with a single API. We tested Firefox as a fallback for bot detection.
-
-5. **Python-Native**: First-class Python support with synchronous and asynchronous APIs.
-
-6. **Persistent Contexts**: Supports browser profiles that persist cookies/state across sessions, helping with bot detection.
+---
 
 ## Troubleshooting
 
-### "No reviews found"
+| Problem | Fix |
+|---------|-----|
+| No reviews found | Remove `--headless`, check URL has `!9m1!1b1` |
+| Reviews duplicated | Already handled — auto-deduped |
+| Browser crashes | Close other apps, check RAM |
 
-1. **Check the URL**: Make sure you're using a direct business URL, not search results
-2. **Try without headless**: Run without `--headless` flag
-3. **Use debug mode**: Run with `--debug` to see screenshots of what the browser sees
-4. **Check the reviews parameter**: URL should contain `!9m1!1b1`
-
-### Reviews getting cut off or duplicated
-
-The scraper automatically removes duplicates. If reviews are missing, try running with `--debug` and check `debug_page.html` for the raw page content.
-
-### Browser crashes or timeouts
-
-- Ensure you have enough RAM (Chromium can be memory-intensive)
-- Try closing other applications
-- Check your internet connection
+---
 
 ## Limitations
 
-- Google Maps class names change periodically; selectors may need updating
-- Very large review sets (1000+) may take several minutes to scroll
-- Rate limiting may occur with frequent scraping
+- Google may change class names (selectors need updates)
+- 1000+ reviews = several minutes of scrolling
 - Bot detection can cause intermittent failures
 
 ## License
