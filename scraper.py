@@ -285,13 +285,32 @@ def scrape_google_maps_reviews(url: str, headless: bool = False, debug: bool = F
         if debug:
             page.screenshot(path='debug_2_after_reviews_click.png')
 
-        # Check if we're on a place page or search results
-        place_name = page.query_selector('h1')
+        # Get place name before clicking reviews (h1 may disappear after)
+        place_name = ""
+        place_name_selectors = [
+            'h1',
+            'div[role="main"] h1',
+            'h1.DUwDvf',
+            '[data-attrid="title"]'
+        ]
+        for selector in place_name_selectors:
+            place_name_el = page.query_selector(selector)
+            if place_name_el:
+                place_name = place_name_el.inner_text().strip()
+                break
+
         if place_name:
-            print(f"Place: {place_name.inner_text()}")
+            print(f"Place: {place_name}")
         else:
-            print("Warning: Could not find place name - this may be a search results page")
-            print("Please use a direct link to a specific business/place")
+            # Try extracting from URL
+            import urllib.parse
+            parsed = urllib.parse.unquote(url)
+            match = re.search(r'/place/([^/@]+)', parsed)
+            if match:
+                place_name = match.group(1).replace('+', ' ')
+                print(f"Place (from URL): {place_name}")
+            else:
+                print("Warning: Could not find place name")
 
         # Scroll to load all reviews
         print("Scrolling to load all reviews...")
@@ -324,15 +343,23 @@ def scrape_google_maps_reviews(url: str, headless: bool = False, debug: bool = F
     df = pd.DataFrame(reviews_data)
     # Remove duplicate rows
     df = df.drop_duplicates()
-    return df
+    return df, place_name
 
 
-def export_to_excel(df: pd.DataFrame, base_filename: str = "reviews") -> str:
+def export_to_excel(df: pd.DataFrame, company_name: str = "") -> str:
     """
-    Export DataFrame to Excel with timestamp in filename.
+    Export DataFrame to Excel with company name and timestamp in filename.
+    Format: CompanyName_reviews_YYYY-MM-DD-HH-MM.xlsx
     """
     timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M")
-    filename = f"{base_filename}_{timestamp}.xlsx"
+
+    # Clean company name for filename (remove special characters)
+    if company_name:
+        clean_name = re.sub(r'[^\w\s-]', '', company_name).strip()
+        clean_name = re.sub(r'[\s]+', '_', clean_name)
+        filename = f"{clean_name}_reviews_{timestamp}.xlsx"
+    else:
+        filename = f"reviews_{timestamp}.xlsx"
 
     df.to_excel(filename, index=False, engine='openpyxl')
     print(f"Exported to: {filename}")
@@ -345,8 +372,6 @@ def main():
 
     parser = argparse.ArgumentParser(description='Scrape Google Maps reviews')
     parser.add_argument('url', help='Google Maps location URL (must be a specific place, not search results)')
-    parser.add_argument('--output', '-o', default='reviews',
-                        help='Base filename for output (default: reviews)')
     parser.add_argument('--headless', action='store_true',
                         help='Run browser in headless mode')
     parser.add_argument('--debug', action='store_true',
@@ -355,11 +380,11 @@ def main():
     args = parser.parse_args()
 
     # Scrape reviews
-    df = scrape_google_maps_reviews(args.url, headless=args.headless, debug=args.debug)
+    df, company_name = scrape_google_maps_reviews(args.url, headless=args.headless, debug=args.debug)
 
     if not df.empty:
         # Export to Excel
-        export_to_excel(df, args.output)
+        export_to_excel(df, company_name)
 
         # Print summary
         print("\n--- Summary ---")
