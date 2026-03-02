@@ -1,109 +1,89 @@
-# Google Maps Review Scraper
+# Google Maps Scrapers
 
-A Python scraper that extracts all reviews from a Google Maps business listing and exports them to Excel with timestamps.
+Two Python scrapers for Google Maps, both built with Playwright and exporting to Excel.
 
-## Features
+---
 
-- Scrapes all reviews from any Google Maps business page
-- Extracts: reviewer name, review count, date, star rating, review content, owner response status
-- Auto-scrolls to load all reviews (handles dynamic loading)
-- Exports to Excel with timestamp (`reviews_YYYY-MM-DD-HH-MM.xlsx`)
-- Removes duplicate entries automatically
+## 1. Search Rankings Scraper — `maps_rankings.py`
 
-## Output Columns
+Takes a list of keywords, searches Google Maps for each one, and records the top 15 results with their rank, business name, type, and address.
+
+### Output
+
+File: `maps_rankings_YYYY-MM-DD-HH-MM.xlsx`
+
+| Column | Description |
+|--------|-------------|
+| `Keyword` | The search term used |
+| `Rank` | Position in Google Maps results (1–15) |
+| `Business` | Business name, type, and address combined (e.g. `Midas - Auto Repair - 920 Northside Dr NW`) |
+
+### Usage
+
+```bash
+# Single keyword
+python3 maps_rankings.py "brake service Atlanta GA"
+
+# Multiple keywords (comma-separated)
+python3 maps_rankings.py "brake service Atlanta GA, engine oil change Atlanta, car AC repair Atlanta"
+
+# Change number of results (default: 15)
+python3 maps_rankings.py "oil change Atlanta" --results 10
+
+# Headless mode (not recommended — see note below)
+python3 maps_rankings.py "oil change Atlanta" --headless
+```
+
+---
+
+## 2. Review Scraper — `scraper.py`
+
+Scrapes all reviews from a specific Google Maps business listing.
+
+### Output
+
+File: `BusinessName_reviews_YYYY-MM-DD-HH-MM.xlsx`
 
 | Column | Description |
 |--------|-------------|
 | `reviewer` | Name of the reviewer |
 | `reviewer_reviews` | Total reviews this person has posted |
-| `date` | When the review was posted (relative, e.g., "2 months ago") |
-| `stars` | Star rating (1-5) |
+| `date` | When the review was posted (e.g. "2 months ago") |
+| `stars` | Star rating (1–5) |
 | `content` | Full review text |
-| `owner_response` | `True` if owner replied, `False` otherwise |
+| `owner_response` | `True` if the owner replied, `False` otherwise |
 
-## Installation
-
-```bash
-# Install dependencies
-pip3 install -r requirements.txt
-
-# Install Playwright browser
-python3 -m playwright install chromium
-```
-
-## Usage
+### Usage
 
 ```bash
-python3 scraper.py "GOOGLE_MAPS_URL"
-```
-
-### Options
-
-| Flag | Description |
-|------|-------------|
-| `--headless` | Run without browser window (not recommended, see below) |
-| `--debug` | Save screenshots for troubleshooting |
-| `-o NAME` | Custom output filename (default: `reviews`) |
-
-### Examples
-
-```bash
-# Basic usage (recommended - opens visible browser)
+# Basic usage
 python3 scraper.py "https://www.google.com/maps/place/..."
 
 # With custom output name
 python3 scraper.py "https://www.google.com/maps/place/..." -o my_business
 
-# Headless mode (may fail due to bot detection)
-python3 scraper.py "https://www.google.com/maps/place/..." --headless
-
 # Debug mode (saves screenshots)
 python3 scraper.py "https://www.google.com/maps/place/..." --debug
 ```
 
-## Important: Getting the Right URL
-
-**Use the full Google Maps URL, not shortened links.**
-
-1. Open the business in Google Maps
-2. Click the **Reviews** tab
-3. Copy the full URL (should contain `!9m1!1b1`)
-
-Shortened `maps.app.goo.gl/...` links won't work reliably.
+**Getting the right URL:** Open the business in Google Maps, click the Reviews tab, and copy the full URL. It should contain `!9m1!1b1`. Shortened `maps.app.goo.gl/...` links won't work reliably.
 
 ---
 
-## Key Insights
+## Installation
 
-### Don't use headless mode
-
-Google detects headless browsers and serves stripped-down pages without reviews. **Run without `--headless`** — the browser opens, scrolls, and closes automatically.
-
-### Why Playwright over Selenium?
-
-| Playwright | Selenium |
-|------------|----------|
-| Auto-waits for elements | Manual waits needed |
-| Better bot detection evasion | Easily fingerprinted |
-| Built for modern SPAs | Built for older web apps |
+```bash
+pip3 install -r requirements.txt
+python3 -m playwright install chromium
+```
 
 ---
 
-## Troubleshooting
+## Notes
 
-| Problem | Fix |
-|---------|-----|
-| No reviews found | Remove `--headless`, check URL has `!9m1!1b1` |
-| Reviews duplicated | Already handled — auto-deduped |
-| Browser crashes | Close other apps, check RAM |
-
----
-
-## Limitations
-
-- Google may change class names (selectors need updates)
-- 1000+ reviews = several minutes of scrolling
-- Bot detection can cause intermittent failures
+- **Don't use `--headless`** — Google detects headless browsers and serves stripped-down pages. The browser opens, runs, and closes automatically.
+- Google may change class names over time, which can require selector updates.
+- Bot detection can cause intermittent failures; a short wait and retry usually resolves it.
 
 ## License
 
